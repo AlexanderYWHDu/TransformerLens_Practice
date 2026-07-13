@@ -2,7 +2,8 @@
 
 A self-paced course that teaches [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens)
 through a single concrete goal: **find the induction heads in GPT-2 small and decompose the
-full prev-token → induction circuit, proving the mechanism with ablation and logit attribution.**
+full prev-token → induction circuit, proving the mechanism with ablation, logit attribution,
+activation patching, and weight-level composition analysis.**
 
 ## Learner profile
 
@@ -43,6 +44,7 @@ Rules of engagement:
 | 2 | `02_attention_viz.ipynb` | Visualize attention with `circuitsvis`; learn to *read* what heads do; survey all 144 heads | Spot candidate heads visually |
 | 3 | `03_induction_detection.ipynb` | Repeated-random-token sequences; per-position loss (the induction signature); why induction heads matter (in-context learning); write an **induction score** hook to rank all 144 heads | Your hook finds the real induction heads |
 | 4 | `04_circuit_decomposition.ipynb` | prev-token head → induction head mechanism; **ablation** (zero/mean) to confirm necessity; **direct logit attribution**; K-composition | Ablate the circuit and watch induction break |
+| 5 | `05_activation_patching.ipynb` | **Activation patching** (clean/corrupted, denoising) to *localize* the circuit; **K-composition score** from the weights to prove the prev-token → induction wiring | Your patch localizes the induction heads a third way |
 
 ## Key concepts by notebook (reference map)
 
@@ -58,14 +60,18 @@ Rules of engagement:
 - **NB4:** prev-token heads in early layers feeding induction heads in later layers via K-composition;
   `HookPoint` ablation (patch activations to zero / dataset mean); direct logit attribution to measure
   each head's contribution to the correct next-token logit.
+- **NB5:** activation patching (clean vs corrupted `[BOS, seq_bad, seq]`, denoising, recovery fraction),
+  per-head `hook_z` patching to localize the circuit; K-composition score from `W_OV = W_V @ W_O` and
+  `W_QK = W_Q @ W_Kᵀ` proving L4H11 feeds the induction heads' keys.
 
 ## Progress tracker
 
 - [ ] NB0 — setup & model
 - [ ] NB1 — hooks & cache
-- [ ] NB2 — attention visualization
+- [x] NB2 — attention visualization
 - [ ] NB3 — induction detection
 - [ ] NB4 — circuit decomposition
+- [ ] NB5 — activation patching & K-composition
 
 (We check off a notebook once its practice cells are done and reviewed.)
 
