@@ -34,6 +34,8 @@ Rules of engagement:
 - `transformer_lens` and `circuitsvis` installed and working.
 - GPT-2 small loads via `HookedTransformer.from_pretrained("gpt2")`
   → `n_layers=12`, `n_heads=12`, `d_model=768`, 144 attention heads total.
+- NB6 additionally downloads a small 2-layer attention-only model from HuggingFace
+  (`callummcdougall/attn_only_2L_half` via `huggingface_hub.hf_hub_download`) — needs internet once.
 
 ## Curriculum
 
@@ -45,15 +47,18 @@ Rules of engagement:
 | 3 | `03_induction_detection.ipynb` | Repeated-random-token sequences; per-position loss (the induction signature); why induction heads matter (in-context learning); write an **induction score** hook to rank all 144 heads | Your hook finds the real induction heads |
 | 4 | `04_circuit_decomposition.ipynb` | prev-token head → induction head mechanism; **ablation** (zero/mean) to confirm necessity; **direct logit attribution**; K-composition | Ablate the circuit and watch induction break |
 | 5 | `05_activation_patching.ipynb` | **Activation patching** (clean/corrupted, denoising) to *localize* the circuit; **K-composition score** from the weights to prove the prev-token → induction wiring | Your patch localizes the induction heads a third way |
+| 6 | `06_qk_ov_circuits.ipynb` | Reverse-engineer from the **weights**: `FactoredMatrix`, the **OV copying circuit** (`W_E W_OV W_U`), the **QK prev-token circuit** (`W_pos W_QK W_posᵀ`), composition scores — on a clean **2-layer attention-only** model | Prove both induction heads copy, straight from the weights |
 
 ## Key concepts by notebook (reference map)
 
 - **NB0:** `HookedTransformer`, `to_tokens` / `to_str_tokens`, logits shape `[batch, pos, d_vocab]`,
   greedy vs sampled generation, `cfg`.
 - **NB1:** `run_with_cache`, hook names like `blocks.0.attn.hook_pattern`, `hook_resid_pre/mid/post`,
-  `utils.get_act_name`, cache indexing `cache["pattern", layer]`, residual-stream read/write view.
+  `utils.get_act_name`, cache indexing `cache["pattern", layer]`, residual-stream read/write view;
+  recompute the attention pattern from cached `q`/`k` by hand (verify activations).
 - **NB2:** `circuitsvis.attention.attention_patterns`, interpreting attention as a `[head, dest, src]`
-  tensor, previous-token / current-token / duplicate-token head shapes.
+  tensor, previous-token / current-token / duplicate-token head shapes; first-token (attention-sink /
+  BOS) detector, and why the induction heads look like sink heads on plain text.
 - **NB3:** constructing `[prefix, rand_seq, rand_seq]` inputs, per-token log-prob, the drop in loss on
   the *second* copy, induction attention offset (attend to the token *after* the previous occurrence),
   induction score aggregated per head → heatmap over layers × heads.
@@ -63,6 +68,11 @@ Rules of engagement:
 - **NB5:** activation patching (clean vs corrupted `[BOS, seq_bad, seq]`, denoising, recovery fraction),
   per-head `hook_z` patching to localize the circuit; K-composition score from `W_OV = W_V @ W_O` and
   `W_QK = W_Q @ W_Kᵀ` proving L4H11 feeds the induction heads' keys.
+- **NB6:** switch to a clean 2-layer attention-only model (`callummcdougall/attn_only_2L_half`, needs a
+  HF download); `FactoredMatrix` for low-rank circuits; OV copying circuit `W_E W_OV W_U` + copying
+  accuracy; QK positional prev-token circuit `W_pos W_QK W_posᵀ`; composition scores on a clean model.
+  Toy-model heads: prev-token L0H7, induction L1H4 & L1H10. (Weight circuits are ~1% on GPT-2 — they
+  need a LayerNorm/MLP-free model to be legible.)
 
 ## Progress tracker
 
@@ -72,6 +82,7 @@ Rules of engagement:
 - [ ] NB3 — induction detection
 - [ ] NB4 — circuit decomposition
 - [ ] NB5 — activation patching & K-composition
+- [ ] NB6 — QK/OV circuits from the weights
 
 (We check off a notebook once its practice cells are done and reviewed.)
 
